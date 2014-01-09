@@ -8,7 +8,7 @@ import paramiko
 
 class NetappFiler:
     
-    def __init__(self, host='10.63.165.71', username='admin', password='Netapp123', port=22):
+    def __init__(self, host, username, password, port=22):
         # Create ssh client
         self.client=paramiko.SSHClient()
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -218,3 +218,4 @@ class NetappFiler:
             mirror = mirror.split(':')
             self._delete_volume(mirror[0], mirror[1])
         self._delete_volume(vserver, vol_name)
+        
