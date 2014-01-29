@@ -9,10 +9,8 @@ def start_cinder_volume():
 def stop_cinder_volume():
     try:
         pids = subprocess.check_output(["pgrep", "-f", "cinder-volume"])
+        pids = pids.decode("utf-8")
     except subprocess.CalledProcessError:
-        pass
-    pids = pids.decode("utf-8")
-    if pids == '':
         return
     pids = pids.splitlines()
     for pid in pids:
@@ -32,10 +30,8 @@ def start_cinder_scheduler():
 def stop_cinder_scheduler():
     try:
         pids = subprocess.check_output(["pgrep", "-f", "cinder-scheduler"])
+        pids = pids.decode("utf-8")
     except subprocess.CalledProcessError:
-        pass
-    pids = pids.decode("utf-8")
-    if pids == '':
         return
     pids = pids.splitlines()
     for pid in pids:
@@ -54,10 +50,8 @@ def start_cinder_backup():
 def stop_cinder_backup():
     try:
         pids = subprocess.check_output(["pgrep", "-f", "cinder-backup"])
+        pids = pids.decode("utf-8")
     except subprocess.CalledProcessError:
-        pass
-    pids = pids.decode("utf-8")
-    if pids == '':
         return
     pids = pids.splitlines()
     for pid in pids:
@@ -76,10 +70,8 @@ def start_cinder_api():
 def stop_cinder_api():
     try:
         pids = subprocess.check_output(["pgrep", "-f", "cinder-api"])
+        pids = pids.decode("utf-8")
     except subprocess.CalledProcessError:
-        pass
-    pids = pids.decode("utf-8")
-    if pids == '':
         return
     pids = pids.splitlines()
     for pid in pids:
