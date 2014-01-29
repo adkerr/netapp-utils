@@ -7,7 +7,14 @@ def start_cinder_volume():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_volume():
-    subprocess.call(["killall", "cinder-volume"])
+    pids = subprocess.check_output(["killall", "cinder-volume"])
+    pids = pids.decode("utf-8")
+    if pids == '':
+        return
+    pids = pids.splitlines()
+    for pid in pids:
+        subprocess.check_call(['kill', pid])
+    
 
 def restart_cinder_volume():
     stop_cinder_volume()
@@ -20,7 +27,13 @@ def start_cinder_scheduler():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_scheduler():
-    subprocess.call(["killall", "cinder-scheduler"])
+    pids = subprocess.check_output(["killall", "cinder-scheduler"])
+    pids = pids.decode("utf-8")
+    if pids == '':
+        return
+    pids = pids.splitlines()
+    for pid in pids:
+        subprocess.check_call(['kill', pid])
 
 def restart_cinder_scheduler():
     stop_cinder_scheduler()
@@ -33,7 +46,13 @@ def start_cinder_backup():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_backup():
-    subprocess.call(["killall", "cinder-backup"])
+    pids = subprocess.check_output(["killall", "cinder-backup"])
+    pids = pids.decode("utf-8")
+    if pids == '':
+        return
+    pids = pids.splitlines()
+    for pid in pids:
+        subprocess.check_call(['kill', pid])
 
 def restart_cinder_backup():
     stop_cinder_backup()
@@ -46,7 +65,13 @@ def start_cinder_api():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_api():
-    subprocess.call(["killall", "cinder-api"])
+    pids = subprocess.check_output(["killall", "cinder-api"])
+    pids = pids.decode("utf-8")
+    if pids == '':
+        return
+    pids = pids.splitlines()
+    for pid in pids:
+        subprocess.check_call(['kill', pid])
 
 def restart_cinder_api():
     stop_cinder_api()
