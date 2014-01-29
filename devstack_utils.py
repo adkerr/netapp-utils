@@ -7,7 +7,10 @@ def start_cinder_volume():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_volume():
-    pids = subprocess.check_output(["pgrep", "-f", "cinder-volume"])
+    try:
+        pids = subprocess.check_output(["pgrep", "-f", "cinder-volume"])
+    except subprocess.CalledProcessError:
+        pass
     pids = pids.decode("utf-8")
     if pids == '':
         return
@@ -27,7 +30,10 @@ def start_cinder_scheduler():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_scheduler():
-    pids = subprocess.check_output(["pgrep", "-f", "cinder-scheduler"])
+    try:
+        pids = subprocess.check_output(["pgrep", "-f", "cinder-scheduler"])
+    except subprocess.CalledProcessError:
+        pass
     pids = pids.decode("utf-8")
     if pids == '':
         return
@@ -46,7 +52,10 @@ def start_cinder_backup():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_backup():
-    pids = subprocess.check_output(["pgrep", "-f", "cinder-backup"])
+    try:
+        pids = subprocess.check_output(["pgrep", "-f", "cinder-backup"])
+    except subprocess.CalledProcessError:
+        pass
     pids = pids.decode("utf-8")
     if pids == '':
         return
@@ -65,7 +74,10 @@ def start_cinder_api():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_api():
-    pids = subprocess.check_output(["pgrep", "-f", "cinder-api"])
+    try:
+        pids = subprocess.check_output(["pgrep", "-f", "cinder-api"])
+    except subprocess.CalledProcessError:
+        pass
     pids = pids.decode("utf-8")
     if pids == '':
         return
