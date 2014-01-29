@@ -13,7 +13,7 @@ def stop_cinder_volume():
         return
     pids = pids.splitlines()
     for pid in pids:
-        subprocess.check_call(['kill', pid])
+        subprocess.call(['kill', pid])
     
 
 def restart_cinder_volume():
@@ -33,7 +33,7 @@ def stop_cinder_scheduler():
         return
     pids = pids.splitlines()
     for pid in pids:
-        subprocess.check_call(['kill', pid])
+        subprocess.call(['kill', pid])
 
 def restart_cinder_scheduler():
     stop_cinder_scheduler()
@@ -52,7 +52,7 @@ def stop_cinder_backup():
         return
     pids = pids.splitlines()
     for pid in pids:
-        subprocess.check_call(['kill', pid])
+        subprocess.call(['kill', pid])
 
 def restart_cinder_backup():
     stop_cinder_backup()
@@ -71,7 +71,7 @@ def stop_cinder_api():
         return
     pids = pids.splitlines()
     for pid in pids:
-        subprocess.check_call(['kill', pid])
+        subprocess.call(['kill', pid])
 
 def restart_cinder_api():
     stop_cinder_api()
