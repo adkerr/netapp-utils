@@ -7,7 +7,7 @@ def start_cinder_volume():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_volume():
-    pids = subprocess.check_output(["pgrep", "cinder-volume"])
+    pids = subprocess.check_output(["pgrep", "-f", "cinder-volume"])
     pids = pids.decode("utf-8")
     if pids == '':
         return
@@ -27,7 +27,7 @@ def start_cinder_scheduler():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_scheduler():
-    pids = subprocess.check_output(["pgrep", "cinder-scheduler"])
+    pids = subprocess.check_output(["pgrep", "-f", "cinder-scheduler"])
     pids = pids.decode("utf-8")
     if pids == '':
         return
@@ -46,7 +46,7 @@ def start_cinder_backup():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_backup():
-    pids = subprocess.check_output(["pgrep", "cinder-backup"])
+    pids = subprocess.check_output(["pgrep", "-f", "cinder-backup"])
     pids = pids.decode("utf-8")
     if pids == '':
         return
@@ -65,7 +65,7 @@ def start_cinder_api():
                            "-X", "stuff", "!!\n"])
 
 def stop_cinder_api():
-    pids = subprocess.check_output(["pgrep", "cinder-api"])
+    pids = subprocess.check_output(["pgrep", "-f", "cinder-api"])
     pids = pids.decode("utf-8")
     if pids == '':
         return
