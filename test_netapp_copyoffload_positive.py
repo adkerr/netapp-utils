@@ -178,7 +178,7 @@ class TestCopyOffload(unittest.TestCase):
                 volume = line[2]
                 break
         self.addCleanup(subprocess.call, ["cinder", "delete", volume])
-        print ("Volume %s being created from image %s" %(volume, self.image_id))
+        print ("Volume %s being created from image %s" %(volume, image))
         # Wait for volume creation
         done = False
         start = time.time()
