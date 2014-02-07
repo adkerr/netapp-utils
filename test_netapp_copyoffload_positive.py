@@ -129,6 +129,7 @@ class TestCopyOffload(unittest.TestCase):
                 break
         self.addCleanup(subprocess.call, ["glance", "image-delete", image])
         # Wait for image upload
+        time.sleep(10)
         done = False
         start = time.time()
         while time.time() - start < 120:
