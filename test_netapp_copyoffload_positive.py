@@ -32,6 +32,9 @@ class TestCopyOffload(unittest.TestCase):
         self.assertEqual(self.glance.get('DEFAULT', 'default_store'), 'file', 'Glance is not using file as default_store')
         # The filesystem store is mounted
         image_store = self.glance.get('DEFAULT', 'filesystem_store_datadir')
+        if image_store[-1] == '/':
+            image_store = image_store[:-2]
+        print(image_store)
         mount = subprocess.check_output("mount").decode("utf-8")
         self.assertIn(image_store, mount, 'Image store %s does not appear to be mounted to NFS' %image_store)
         # The metatdata file is configured
