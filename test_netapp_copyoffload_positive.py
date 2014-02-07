@@ -152,7 +152,7 @@ class TestCopyOffload(unittest.TestCase):
         client.connect(self.server, 22, username=self.login, password=self.password)
         self.addCleanup(client.close())
         
-        stdin, stdout, stderr = self.client.exec_command( "node run -node * -command \"priv set diag; stats show copy_manager:%s\"" %self.vserver)
+        stdin, stdout, stderr = client.exec_command( "node run -node * -command \"priv set diag; stats show copy_manager:%s\"" %self.vserver)
         stdin.close()
         stdout = stdout.readlines()
         copy_reqs_origin = 0
@@ -195,7 +195,7 @@ class TestCopyOffload(unittest.TestCase):
         
         # Check final volume copy_reqs
         
-        stdin, stdout, stderr = self.client.exec_command( "node run -node * -command \"priv set diag; stats show copy_manager:%s\"" %self.vserver)
+        stdin, stdout, stderr = client.exec_command( "node run -node * -command \"priv set diag; stats show copy_manager:%s\"" %self.vserver)
         stdin.close()
         stdout = stdout.readlines()
         copy_reqs_final = 0
