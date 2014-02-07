@@ -124,12 +124,11 @@ class TestCopyOffload(unittest.TestCase):
             line = line.split("|")
             for item in line:
                 line[line.index(item)] = item.strip()
-            if line[1] == "id":
+            if line[1] == "image_id":
                 image = line[2]
                 break
         self.addCleanup(subprocess.call, ["glance", "image-delete", image])
         # Wait for image upload
-        time.sleep(10)
         done = False
         start = time.time()
         while time.time() - start < 120:
