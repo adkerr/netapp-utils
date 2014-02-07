@@ -136,7 +136,7 @@ class TestCopyOffload(unittest.TestCase):
             if "active" in subprocess.check_output(["glance",
                                                        "image-show",
                                                        image]).decode("utf-8"):
-                print ("Image %s successfully uploaded in %ss" %(time.time() - start))
+                print ("Image %s successfully uploaded in %ss" %(image, time.time() - start))
                 done = True
                 break
         if not done:
