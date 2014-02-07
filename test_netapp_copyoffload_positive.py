@@ -150,7 +150,6 @@ class TestCopyOffload(unittest.TestCase):
         client=paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(self.server, 22, username=self.login, password=self.password)
-        self.addCleanup(client.close())
         
         stdin, stdout, stderr = client.exec_command( "node run -node * -command \"priv set diag; stats show copy_manager:%s\"" %self.vserver)
         stdin.close()
@@ -166,7 +165,7 @@ class TestCopyOffload(unittest.TestCase):
                                           "--image-id",
                                           image,
                                           "--name",
-                                          "vol-image"
+                                          "vol-image",
                                           "1"])
         volume = volume.decode("utf-8")
         self.assertIn("creating", volume, "Unexpected output from volume create command:\n%s\n" %volume)
@@ -205,6 +204,7 @@ class TestCopyOffload(unittest.TestCase):
         
         # Check difference in copy_reqs
         copy_reqs = copy_reqs_final - copy_reqs_origin
+        print('copy_reqs increased by %s' %copy_reqs)
         self.assertGreater(copy_reqs, 0, 'copy_reqs did not increment')
         
 
