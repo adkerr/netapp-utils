@@ -109,7 +109,7 @@ class TestCopyOffload(unittest.TestCase):
         start = time.time()
         while time.time() - start < 120:
             if "available" in subprocess.check_output(["cinder", "show", volume_origin]).decode("utf-8"):
-                print ("Volume %s successfully created in %ss" %(time.time() - start))
+                print ("Volume %s successfully created in %ss" %(volume_origin, time.time() - start))
                 done = True
                 break
             time.sleep(2)
@@ -186,7 +186,7 @@ class TestCopyOffload(unittest.TestCase):
         while time.time() - start < 120:
             time.sleep(5)
             if "available" in subprocess.check_output(["cinder", "show", volume]).decode("utf-8"):
-                print ("Volume %s successfully created in %ss" %(time.time() - start))
+                print ("Volume %s successfully created in %ss" %(volume, time.time() - start))
                 done = True
                 break
         if not done:
