@@ -62,16 +62,18 @@ class TestCopyOffload(unittest.TestCase):
         self.cinder.read('/etc/cinder/cinder.conf')
         backends = self.cinder.get('DEFAULT', 'enabled_backends')
         backends = backends.split(',')
-        offload_binary = None
         for backend in backends:
-            if 'netapp_copyoffload_tool_path' in self.cinder.items(backend):
-                offload_binary = self.cinder.get(backend, 'netapp_copyoffload_tool_path')
+            try:
+                self.tool = self.cinder.get(backend, 'netapp_copyoffload_tool_path')
+            except ConfigParser.NoOptionError:
+                continue
+            if os.path.isfile(self.tool):
                 self.vserver = self.cinder.get(backend, 'netapp_vserver')
                 self.server = self.cinder.get(backend, 'netapp_server_hostname')
                 self.login = self.cinder.get(backend, 'netapp_login')
                 self.password = self.cinder.get(backend, 'netapp_password')
         self.assertIsNotNone(self.vserver, 'No backend is configured for copy offload')
-        self.assertTrue(os.path.isfile(offload_binary), '%s does not exist' %offload_binary)
+        self.assertTrue(os.path.isfile(self.tool), '%s does not exist' %self.tool)
         try:
             glance_api = self.cinder.getint('DEFAULT', 'glance_api_version')
         except ConfigParser.NoOptionError:
