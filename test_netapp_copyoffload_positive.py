@@ -34,7 +34,6 @@ class TestCopyOffload(unittest.TestCase):
         image_store = self.glance.get('DEFAULT', 'filesystem_store_datadir')
         if image_store[-1] == '/':
             image_store = image_store[:-2]
-        print(image_store)
         mount = subprocess.check_output("mount").decode("utf-8")
         self.assertIn(image_store, mount, 'Image store %s does not appear to be mounted to NFS' %image_store)
         # The metatdata file is configured
@@ -155,9 +154,12 @@ class TestCopyOffload(unittest.TestCase):
         stdin.close()
         stdout = stdout.readlines()
         copy_reqs_origin = 0
+        copy_failures_origin = 0
         for line in stdout:
             if 'copy_reqs' in line:
                 copy_reqs_origin += int(line.split(':')[-1])
+            if 'copy_failures' in line:
+                copy_failures_origin += int(line.split(':')[-1])
         
         # Create volume from image
         volume = subprocess.check_output(["cinder",
@@ -198,14 +200,20 @@ class TestCopyOffload(unittest.TestCase):
         stdin.close()
         stdout = stdout.readlines()
         copy_reqs_final = 0
+        copy_failures_final = 0
         for line in stdout:
             if 'copy_reqs' in line:
                 copy_reqs_final += int(line.split(':')[-1])
+            if 'copy_failures' in line:
+                copy_failures_final += int(line.split(':')[-1])
         
         # Check difference in copy_reqs
         copy_reqs = copy_reqs_final - copy_reqs_origin
+        copy_failures = copy_failures_final - copy_reqs_final
         print('copy_reqs increased by %s' %copy_reqs)
         self.assertGreater(copy_reqs, 0, 'copy_reqs did not increment')
+        print('copy_failures increased by %s' %copy_failures)
+        self.assertEquals(copy_failures, 0, 'copy_failures was not 0')
         
 
 if __name__ == "__main__":
