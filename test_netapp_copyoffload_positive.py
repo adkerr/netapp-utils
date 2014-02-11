@@ -209,7 +209,7 @@ class TestCopyOffload(unittest.TestCase):
         
         # Check difference in copy_reqs
         copy_reqs = copy_reqs_final - copy_reqs_origin
-        copy_failures = copy_failures_final - copy_reqs_final
+        copy_failures = copy_failures_final - copy_failures_origin
         print('copy_reqs increased by %s' %copy_reqs)
         self.assertGreater(copy_reqs, 0, 'copy_reqs did not increment')
         print('copy_failures increased by %s' %copy_failures)
