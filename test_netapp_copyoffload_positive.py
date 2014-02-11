@@ -156,9 +156,9 @@ class TestCopyOffload(unittest.TestCase):
         copy_reqs_origin = 0
         copy_failures_origin = 0
         for line in stdout:
-            if 'copy_reqs' in line:
+            if ':copy_reqs:' in line:
                 copy_reqs_origin += int(line.split(':')[-1])
-            if 'copy_failures' in line:
+            if ':copy_failures:' in line:
                 copy_failures_origin += int(line.split(':')[-1])
         
         # Create volume from image
@@ -202,9 +202,9 @@ class TestCopyOffload(unittest.TestCase):
         copy_reqs_final = 0
         copy_failures_final = 0
         for line in stdout:
-            if 'copy_reqs' in line:
+            if ':copy_reqs:' in line:
                 copy_reqs_final += int(line.split(':')[-1])
-            if 'copy_failures' in line:
+            if ':copy_failures:' in line:
                 copy_failures_final += int(line.split(':')[-1])
         
         # Check difference in copy_reqs
