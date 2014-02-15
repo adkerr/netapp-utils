@@ -86,3 +86,47 @@ def restart_cinder():
     restart_cinder_backup()
     restart_cinder_scheduler()
     restart_cinder_api()
+
+def stop_glance_api():
+    try:
+        pids = subprocess.check_output(["pgrep", "-f", "glance-api"])
+        pids = pids.decode("utf-8")
+    except subprocess.CalledProcessError:
+        return
+    pids = pids.splitlines()
+    for pid in pids:
+        subprocess.call(['kill', pid])
+
+def start_glance_api():
+    subprocess.check_call(["screen",
+                           "-S", "stack",
+                           "-p", "g-api",
+                           "-X", "stuff", "!!\n"])
+
+def restart_glance_api():
+    stop_glance_api()
+    start_glance_api()
+
+def stop_glance_reg():
+    try:
+        pids = subprocess.check_output(["pgrep", "-f", "glance-registry"])
+        pids = pids.decode("utf-8")
+    except subprocess.CalledProcessError:
+        return
+    pids = pids.splitlines()
+    for pid in pids:
+        subprocess.call(['kill', pid])
+
+def start_glance_reg():
+    subprocess.check_call(["screen",
+                           "-S", "stack",
+                           "-p", "g-reg",
+                           "-X", "stuff", "!!\n"])
+
+def restart_glance_reg():
+    stop_glance_reg()
+    start_glance_reg()
+
+def restart_glance():
+    restart_glance_api()
+    restart_glance_reg()
