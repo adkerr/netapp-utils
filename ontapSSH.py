@@ -5,6 +5,7 @@
 # All Rights Reserved.
 
 import paramiko
+import socket
 
 class NetappFiler:
     
@@ -17,51 +18,46 @@ class NetappFiler:
 
     def __del__(self):
         # Close ssh connection
-        self.client.close()
-
-
-    def setup_ssh(self, ssh_key):
-        ssh_key='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDEpidHBQCxrZ+a2+iqrLiu+bcozbenWdCXVNBbouYcQ5Th85lPk8hiizY2Q8VZ8OY9JMdnZKAH/GtIW3jORr9Lc70BcWNG0ZCGeUqjxPdDK+PFFF6ewa55AjJ3eLvA3IBCUNEXMoGa0nhy2n35HK4vZk4Ws0uaQ8x/3RSADYfHHLVO7ll6Oa1ap1G4bHy4AgHAZm+BQIGPMzZjQJM4Qy6Smc3GyJ7YgoY/9X3HY7yVfKVgIRkA6WofOc7f6JD29T/xbOWNKwNZyjbqF9puufDcaHJtvrA4E7akfsLQ0SUhgjcd7TslaaHyR8nYkz/M8Pf/PpyvCaJSPe0Q1B02iHd7 root@stlrx300s7-30'
-        # setup ssh keys -- THIS HAPPENS ON THE CONTROLLER BEFORE SCRIPT EXECUTION WITH THE CORRECT ssh_key SUBSTITUTED
-        STR="security login create -username admin -application ssh -authmethod publickey -profile admin"
-        print (STR)
-        #note if an existing key then change index to 1 below
-        STR2="security login publickey create -username admin -index 0 -publickey %s" %(ssh_key)
-        print (STR2)
+        self.client.close()    
     
     
     def _ssh_cmd(self, cmd):
-        print (cmd)
+        #print (cmd)
         stdin, stdout, stderr = self.client.exec_command(cmd)
         stdin.close()
         stdout = stdout.readlines()
-        for line in stdout:
-            print (line)
+        return stdout
     
     
     def _ssh_yes_cmd(self, cmd):
-        print (cmd)
+        #print (cmd)
         stdin, stdout, stderr = self.client.exec_command(cmd)
         stdin.write('y\n')
         stdin.flush()
         stdin.close()
         stdout = stdout.readlines()
-        for line in stdout:
-            print (line)
+        return stdout
     
     
     def _create_volume(self, vserver, vol_name, vol_size, target_aggr):
         # Creates a thick volume
-        cmd = "vol create -vserver %s -volume %s -aggregate %s -size %s -state online -type RW -policy default -user 0 -group 1 -security-style unix -unix-permissions ---rwxr-xr-x -max-autosize 60GB -autosize-increment 2.50GB -min-autosize 50GB -autosize-mode grow -space-guarantee volume" %(vserver, vol_name, target_aggr, vol_size)
+        cmd = ("vol create -vserver %s -volume %s -aggregate %s -size %s "
+               "-state online -type RW -policy default -user 0 -group 1 "
+               "-security-style unix -unix-permissions ---rwxr-xr-x "
+               "-max-autosize 60GB -autosize-increment 2.50GB "
+               "-min-autosize 50GB -autosize-mode grow -space-guarantee volume"
+               %(vserver, vol_name, target_aggr, vol_size))
         self._ssh_cmd(cmd)
     
     
     def create_set_QOS_policy(self, qosPolicy, vserver, vol_name):
         cmds = []
         # create policy-group
-        cmds.append("policy-group create -policy-group %s -vserver %s -max-throughput 500MB" %(qosPolicy, vserver))
+        cmds.append("policy-group create -policy-group %s -vserver %s "
+                    "-max-throughput 500MB" %(qosPolicy, vserver))
         #apply policy group to a volume
-        cmds.append("vol modify -vserver %s -volume %s -qos-policy-group %s" %(vserver, vol_name, qosPolicy))
+        cmds.append("vol modify -vserver %s -volume %s -qos-policy-group %s"
+                    %(vserver, vol_name, qosPolicy))
         for cmd in cmds:
             self._ssh_cmd(cmd)
     
@@ -75,29 +71,45 @@ class NetappFiler:
     def set_compression (self, vserver, vol_name):
         cmds = []
         # turn on compession
-        cmds.append("sis modify -vserver %s -volume %s -compression true" %(vserver, vol_name))
+        cmds.append("sis modify -vserver %s -volume %s -compression true"
+                    %(vserver, vol_name))
         for cmd in cmds:
             self._ssh_cmd(cmd)
     
     
     def set_thick (self, vserver, vol_name):
         # make volume thick provisioned
-        cmd = "vol modify  -vserver %s -volume %s  -space-guarantee volume" %(vserver, vol_name)
+        cmd = ("vol modify  -vserver %s -volume %s  -space-guarantee volume"
+               %(vserver, vol_name))
         self._ssh_cmd(cmd)
     
     
     def set_thin (self, vserver, vol_name):
         # make volume thin provisioned
-        cmd = "vol modify  -vserver %s -volume %s -space-guarantee none" %(vserver, vol_name)
+        cmd = ("vol modify  -vserver %s -volume %s -space-guarantee none"
+               %(vserver, vol_name))
         self._ssh_cmd(cmd)
     
     
-    def mirror_vol (self, vserver, mirror_vserver, vol_name, vol_size, mirror_aggr):
+    def mirror_vol (self,
+                    vserver,
+                    mirror_vserver,
+                    vol_name,
+                    vol_size,
+                    mirror_aggr):
         cmds = []
-        # create mirror in other vserver based on existing volume. autocreates target vol name
+        # create mirror in other vserver based on existing volume.
+        # autocreates target vol name
         mirror_vol="%s_mirror_target" %(vol_name)
-        cmds.append("volume create -vserver %s -volume %s -aggregate %s -size %s -state online -type RW -policy default -unix-permissions ---rwxr-xr-x -space-guarantee volume -snapshot-policy default -foreground true -antivirus-on-access-policy default -autosize true" %(mirror_vserver, mirror_vol, mirror_aggr, vol_size))
-        cmds.append("snapmirror create -source-path  %s:%s -destination-path  %s:%s" %(vserver, vol_name, mirror_vserver, mirror_vol))
+        cmds.append("volume create -vserver %s -volume %s -aggregate %s "
+                    "-size %s -state online -type RW -policy default "
+                    "-unix-permissions ---rwxr-xr-x -space-guarantee volume "
+                    "-snapshot-policy default -foreground true "
+                    "-antivirus-on-access-policy default -autosize true"
+                    %(mirror_vserver, mirror_vol, mirror_aggr, vol_size))
+        cmds.append("snapmirror create -source-path  %s:%s "
+                    "-destination-path  %s:%s"
+                    %(vserver, vol_name, mirror_vserver, mirror_vol))
         for cmd in cmds:
             self._ssh_cmd(cmd)
     
@@ -173,7 +185,7 @@ class NetappFiler:
         '''
         # Check for impossibilities
         if compression and not dedup:
-            print "Can't have compression without dedup, converting dedup to true"
+            # Can't have compression without dedup, converting dedup to true
             dedup = True
         
         # Create the volume
@@ -199,8 +211,10 @@ class NetappFiler:
     def _delete_volume(self, vserver, vol_name):
         cmds = []
         cmds.append("vol unmount -vserver %s -volume %s" %(vserver, vol_name))
-        cmds.append("volume offline -vserver %s -volume %s -foreground true" %(vserver, vol_name))
-        delcmd = "volume delete -vserver %s -volume %s -foreground true" %(vserver, vol_name)
+        cmds.append("volume offline -vserver %s -volume %s -foreground true"
+                    %(vserver, vol_name))
+        delcmd = ("volume delete -vserver %s -volume %s -foreground true"
+                  %(vserver, vol_name))
         for cmd in cmds:
             self._ssh_cmd(cmd)
         self._ssh_yes_cmd(delcmd)
@@ -213,9 +227,84 @@ class NetappFiler:
         # Test for mirror relationships
         while self._is_vol_mirrored(vserver, vol_name) is not False:
             mirror = self._is_vol_mirrored(vserver, vol_name)
-            cmd = "snapmirror delete -S %s:%s -destination-path %s -foreground true" %(vserver, vol_name, mirror)
+            cmd = ("snapmirror delete -S %s:%s -destination-path %s "
+                   "-foreground true" %(vserver, vol_name, mirror))
             self._ssh_cmd(cmd)
             mirror = mirror.split(':')
             self._delete_volume(mirror[0], mirror[1])
-        self._delete_volume(vserver, vol_name)
+        return self._delete_volume(vserver, vol_name)
+    
+    
+    def get_vserver_aggrs(self, vserver):
+        ''' Return a list of aggregates assigned to a given vserver '''
         
+        aggrs = []
+        cmd = 'vserver show -vserver %s -aggr-list *' %vserver
+        rtn = self._ssh_cmd(cmd)
+        for line in rtn:
+            if 'List of Aggregates Assigned:' in line:
+                aggrs = line.split(':')[-1]
+                aggrs = aggrs.split(',')
+                for idx, aggr in enumerate(aggrs):
+                    aggrs[idx] = aggr.strip()
+        return aggrs
+    
+    
+    def get_vserver_data_ips(self, vserver):
+        ''' Return a list of data IP addresses for a given vserver '''
+        
+        ips = []
+        cmd = ('network interface show -vserver %s -lif * -status-oper up '
+               '-status-admin up -role data' %vserver)
+        rtn = self._ssh_cmd(cmd)
+        for line in rtn:
+            words = line.split()
+            if len(words) >= 2:
+                for word in words:
+                    ip = word.split('/')[0]
+                    try:
+                        # Quickly determine valid IPv4 addresses
+                        socket.inet_aton(ip)
+                        ips.append(ip)
+                    except socket.error:
+                        pass
+                    try:
+                        # Quickly determine valid IPv6 addresses
+                        socket.inet_pton(socket.AF_INET6, ip)
+                        ips.append(ip)
+                    except socket.error:
+                        pass
+        return ips
+    
+    
+    def get_vserver_volumes(self, vserver):
+        ''' Return a list of volumes defined on a given vserver '''
+        
+        volumes = []
+        cmd = ('volume show -vserver %s' %vserver)
+        rtn = self._ssh_cmd(cmd)
+        for line in rtn[2:]:
+            words = line.split()
+            if len(words) >= 2:
+                volumes.append(words[1])
+        return volumes
+    
+    
+    def get_volume(self, vserver, vol_name):
+        '''
+        Return a dictionary object containing details of a given volume
+        
+        Returns None if volume does not exist 
+        '''
+        
+        volume = {}
+        cmd = ('volume show -vserver %s -volume %s' %(vserver, vol_name))
+        rtn = self._ssh_cmd(cmd)
+        for line in rtn:
+            line = line.strip()
+            if line == 'There are no entries matching your query.':
+                return None
+            if line != '':
+                words = line.split(':')
+                volume[words[0].strip()] = words[1].strip()
+        return volume
