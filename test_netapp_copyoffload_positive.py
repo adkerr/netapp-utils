@@ -131,11 +131,11 @@ class TestCopyOffload(unittest.TestCase):
         
     
     def tearDown(self):
-        self._unmount_glance()
-        self._mount_glance()
-        self._reset_json()
-        self._reset_shares()
-        self._restart_services
+        self.cinder.set(self.backend, 'nfs_shares_config', self.shares_file)
+        with open('/etc/cinder/cinder.conf', 'w+') as configfile:
+            self.cinder.write(configfile)
+        configfile.close()
+        del self.filer
 
 
     def _delete_image(self, image_id):
@@ -352,9 +352,16 @@ class TestCopyOffload(unittest.TestCase):
         print('%s...' %inspect.stack()[0][3])
         self._unmount_glance()
         # Force cinder to use only 1 possible flexvol
-        share = open(self.shares_file, 'r+')
+        filename = '%s-%s' %(self.shares_file, inspect.stack()[0][3])
+        share = open(filename, 'w')
         share.write(self.shares[0])
         share.close()
+        
+        self.cinder.set(self.backend, 'nfs_shares_config', filename)
+        with open('/etc/cinder/cinder.conf', 'w+') as configfile:
+            self.cinder.write(configfile)
+        configfile.close()
+        
         
         ip = self.shares[0].split('/')[0]
         vol = self.shares[0].split(':')[-1]
