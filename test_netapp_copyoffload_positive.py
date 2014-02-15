@@ -155,7 +155,7 @@ class TestCopyOffload(unittest.TestCase):
         metadatafile.close()
     
     
-    def _reset_shares(self, share):
+    def _reset_shares(self):
         share = open(self.shares_file, 'w')
         share.writelines(self.shares)
         share.close()
