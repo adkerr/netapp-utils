@@ -30,109 +30,120 @@ import unittest
 
 class TestCopyOffload(unittest.TestCase):
 
-
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
+        super(TestCopyOffload,cls).__init__()
         print('Hello World')
         # Verify that environment has been primed
-        self.assertIsNotNone(os.getenv("OS_USERNAME"),
+        cls.assertIsNotNone(os.getenv("OS_USERNAME"),
                              "Environment not set up, please source "
                              "devstack/openrc before running test")
         # Configure Glance and Cinder properly
-        self.glance = ConfigParser.SafeConfigParser()
-        self.glance.read('/etc/glance/glance-api.conf')
-        self.cinder = ConfigParser.SafeConfigParser()
-        self.cinder.read('/etc/cinder/cinder.conf')
-        backends = self.cinder.get('DEFAULT', 'enabled_backends')
+        cls.glance = ConfigParser.SafeConfigParser()
+        cls.glance.read('/etc/glance/glance-api.conf')
+        cls.cinder = ConfigParser.SafeConfigParser()
+        cls.cinder.read('/etc/cinder/cinder.conf')
+        backends = cls.cinder.get('DEFAULT', 'enabled_backends')
         backends = backends.split(',')
-        self.vserver = None
+        cls.vserver = None
         for backend in backends:
             try:
-                self.tool = self.cinder.get(backend,
+                cls.tool = cls.cinder.get(backend,
                                             'netapp_copyoffload_tool_path')
             except ConfigParser.NoOptionError:
                 continue
-            if os.path.isfile(self.tool):
-                self.vserver = self.cinder.get(backend, 'netapp_vserver')
-                self.server = self.cinder.get(backend, 'netapp_server_hostname')
-                self.login = self.cinder.get(backend, 'netapp_login')
-                self.password = self.cinder.get(backend, 'netapp_password')
-                self.backend = backend
-        self.assertIsNotNone(self.vserver,
+            if os.path.isfile(cls.tool):
+                cls.vserver = cls.cinder.get(backend, 'netapp_vserver')
+                cls.server = cls.cinder.get(backend, 'netapp_server_hostname')
+                cls.login = cls.cinder.get(backend, 'netapp_login')
+                cls.password = cls.cinder.get(backend, 'netapp_password')
+                cls.backend = backend
+        cls.assertIsNotNone(cls.vserver,
                              'No backend is configured for copy offload')
-        self.assertTrue(os.path.isfile(self.tool),
-                        '%s does not exist' %self.tool)
-        self.cinder.set('DEFAULT', 'glance_api_version', '2')
+        cls.assertTrue(os.path.isfile(cls.tool),
+                        '%s does not exist' %cls.tool)
+        cls.cinder.set('DEFAULT', 'glance_api_version', '2')
 
         with open('/etc/cinder/cinder.conf', 'w+') as configfile:
-            self.cinder.write(configfile)
+            cls.cinder.write(configfile)
         configfile.close()
 
         # Query vserver for glance volume, if it doesn't already exist create 
         # on a random aggregate and find out the vserver's data IP address
         
-        self.filer = ontapSSH.NetappFiler(self.server,
-                                          self.login,
-                                          self.password)
-        if 'glance' not in self.filer.get_vserver_volumes(self.vserver):
-            aggrs = self.filer.get_vserver_aggrs(self.vserver)
+        cls.filer = ontapSSH.NetappFiler(cls.server,
+                                          cls.login,
+                                          cls.password)
+        if 'glance' not in cls.filer.get_vserver_volumes(cls.vserver):
+            aggrs = cls.filer.get_vserver_aggrs(cls.vserver)
             try:
                 aggr = random.choice(aggrs)
             except IndexError:
                 print('Vserver %s does not appear to have any aggregates'
-                      %self.vserver)
+                      %cls.vserver)
                 exit(1)
-            self.filer.create_volume(self.vserver, 'glance', aggr)
-        self.assertIsNotNone(self.filer.get_volume(self.vserver, 'glance'),
+            cls.filer.create_volume(cls.vserver, 'glance', aggr)
+        cls.assertIsNotNone(cls.filer.get_volume(cls.vserver, 'glance'),
                              'glance volume could not be found or created on '
                              'server %s vserver %s'
-                             %(self.server, self.vserver))
-        self.filer.unmount_volume('glance')
-        self.filer.mount_volume('glance')
+                             %(cls.server, cls.vserver))
+        cls.filer.unmount_volume('glance')
+        cls.filer.mount_volume('glance')
         try:
-            self.vserver_ip = random.choice(
-                                self.filer.get_vserver_data_ips(self.vserver))
+            cls.vserver_ip = random.choice(
+                                cls.filer.get_vserver_data_ips(cls.vserver))
         except IndexError:
             print('Vserver %s does not appear to have any data ips'
-                  %self.vserver)
+                  %cls.vserver)
             exit(1)
         
         # Use filesystem store
-        self.glance.set('DEFAULT', 'default_store', 'file')
+        cls.glance.set('DEFAULT', 'default_store', 'file')
         # Mount/remount the filesystem store
-        self.image_store = self.glance.get('DEFAULT',
+        cls.image_store = cls.glance.get('DEFAULT',
                                            'filesystem_store_datadir')
-        if self.image_store[-1] == '/':
-            self.image_store = self.image_store[:-1]
+        if cls.image_store[-1] == '/':
+            cls.image_store = cls.image_store[:-1]
         mount = subprocess.check_output("mount").decode("utf-8")
-        if self.image_store in mount:
-            subprocess.check_call(["sudo", "umount", self.image_store])
+        if cls.image_store in mount:
+            subprocess.check_call(["sudo", "umount", cls.image_store])
         subprocess.check_call(["sudo",
                                "mount",
                                "-t",
                                "nfs",
                                "-o",
                                "vers=4",
-                               "%s:/glance" %self.vserver_ip,
-                               self.image_store])
+                               "%s:/glance" %cls.vserver_ip,
+                               cls.image_store])
         # The metatdata file is configured
-        self._reset_json()
-        self.glance.set('DEFAULT',
+        metadatafile = open('/etc/glance/netapp.json', 'w')
+        json = str('{'
+                   '"share_location": "nfs://%s/glance",'
+                   '"mount_point": "%s",'
+                   '"type": "nfs"'
+                   '}' %(cls.vserver_ip, cls.image_store))
+        metadatafile.write(json)
+        metadatafile.close()
+        cls.glance.set('DEFAULT',
                         'filesystem_store_metadata_file',
                         '/etc/glance/netapp.json')
         # Multiple locations is True
-        self.glance.set('DEFAULT',
+        cls.glance.set('DEFAULT',
                         'show_multiple_locations',
                         'True')
         # show_image_direct_url is True
-        self.glance.set('DEFAULT',
+        cls.glance.set('DEFAULT',
                         'show_image_direct_url',
                         'True')
         
         with open('/etc/glance/glance-api.conf', 'w+') as configfile:
-            self.glance.write(configfile)
+            cls.glance.write(configfile)
         configfile.close()
-        
-        self._restart_services()
+        # Restart glance and cinder
+        devstack.restart_cinder()
+        devstack.restart_glance()
+        # Give services time to initialize
+        time.sleep(20)
         
     
     def tearDown(self):
@@ -350,7 +361,6 @@ class TestCopyOffload(unittest.TestCase):
         shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
         # Force cinder to use only 1 possible flexvol
         shares = open(shares_file, 'rw')
-        self.addCleanup(shares.close)
         share = shares.readlines()
         shares.write(share[0])
         shares.close()
@@ -360,7 +370,6 @@ class TestCopyOffload(unittest.TestCase):
         vol = share[0].split(':')[-1]
         
         metadatafile = open('/etc/glance/netapp.json', 'w')
-        self.addCleanup(metadatafile.close)
         metadatafile.write(str('{'
                                '"share_location": "nfs://%s%s",'
                                '"mount_point": "%s",'
