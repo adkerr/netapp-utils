@@ -43,7 +43,7 @@ class NetappFiler:
         # Creates a thick volume
         cmd = ("vol create -vserver %s -volume %s -aggregate %s -size %s "
                "-state online -type RW -policy default -user 0 -group 1 "
-               "-security-style unix -unix-permissions ---rwxr-xr-x "
+               "-security-style unix -unix-permissions ---rwxrwxrwx "
                "-max-autosize 60GB -autosize-increment 2.50GB "
                "-min-autosize 50GB -autosize-mode grow -space-guarantee volume"
                %(vserver, vol_name, target_aggr, vol_size))
@@ -232,6 +232,7 @@ class NetappFiler:
             self._ssh_cmd(cmd)
             mirror = mirror.split(':')
             self._delete_volume(mirror[0], mirror[1])
+        self.unmount_volume(vol_name)
         return self._delete_volume(vserver, vol_name)
     
     
