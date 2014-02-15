@@ -64,6 +64,11 @@ class TestCopyOffload(unittest.TestCase):
         with open('/etc/cinder/cinder.conf', 'w+') as configfile:
             self.cinder.write(configfile)
         configfile.close()
+        
+        self.shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
+        shares = open(self.shares_file, 'r')
+        self.shares = shares.readlines()
+        shares.close()
 
         # Query vserver for glance volume, if it doesn't already exist create 
         # on a random aggregate and find out the vserver's data IP address
@@ -126,6 +131,11 @@ class TestCopyOffload(unittest.TestCase):
         
     
     def tearDown(self):
+        self._unmount_glance()
+        self._mount_glance()
+        self._reset_json()
+        self._reset_shares()
+        self._restart_services
         del self.filer
 
 
@@ -146,10 +156,9 @@ class TestCopyOffload(unittest.TestCase):
     
     
     def _reset_shares(self, share):
-        shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
-        shares = open(shares_file, 'w')
-        shares.writelines(share)
-        shares.close()
+        share = open(self.shares_file, 'w')
+        share.writelines(self.shares)
+        share.close()
     
     
     def _restart_services(self):
@@ -342,16 +351,12 @@ class TestCopyOffload(unittest.TestCase):
             cinder volumes are stored.  Cloning should be used instead of
             copy offload '''
         print('%s...' %inspect.stack()[0][3])
-        self.addCleanup(self._restart_services)
+ 
         self._unmount_glance()
-        self.addCleanup(self._mount_glance())
-        shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
         # Force cinder to use only 1 possible flexvol
-        shares = open(shares_file, 'r+')
-        share = shares.readlines()
-        shares.write(share[0])
-        shares.close()
-        self.addCleanup(self._reset_shares(share))
+        share = open(self.shares_file, 'r+')
+        share.write(self.shares[0])
+        share.close()
         
         ip = share[0].split('/')[0]
         vol = share[0].split(':')[-1]
@@ -363,8 +368,6 @@ class TestCopyOffload(unittest.TestCase):
                                '"type": "nfs"'
                                '}' %(ip[:-1], vol, self.image_store)))
         metadatafile.close()
-        self.addCleanup(self._reset_json)
-        
         subprocess.check_call(["sudo",
                                "mount",
                                "-t",
@@ -373,7 +376,6 @@ class TestCopyOffload(unittest.TestCase):
                                "vers=4",
                                "%s" %share[0].strip(),
                                self.image_store])
-        self.addCleanup(self._unmount_glance())
         self._restart_services()
         copy_reqs, copy_failures = self._do_image_download_test()
         self.assertEqual(copy_reqs,
