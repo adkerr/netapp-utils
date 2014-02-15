@@ -32,7 +32,7 @@ class TestCopyOffload(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestCopyOffload,cls).__init__()
+        super(TestCopyOffload,cls).__init__(cls)
         print('Hello World')
         # Verify that environment has been primed
         cls.assertIsNotNone(os.getenv("OS_USERNAME"),
