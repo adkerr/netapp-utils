@@ -346,7 +346,7 @@ class TestCopyOffload(unittest.TestCase):
                                           self.image_store])
         shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
         # Force cinder to use only 1 possible flexvol
-        shares = open(shares_file, 'rw')
+        shares = open(shares_file, 'w+')
         share = shares.readlines()
         shares.write(share[0])
         shares.close()
