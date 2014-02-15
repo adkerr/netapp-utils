@@ -21,7 +21,7 @@ class NetappFiler:
         self.client.close()    
     
     
-    def _ssh_cmd(self, cmd):
+    def ssh_cmd(self, cmd):
         #print (cmd)
         stdin, stdout, stderr = self.client.exec_command(cmd)
         stdin.close()
@@ -47,7 +47,7 @@ class NetappFiler:
                "-max-autosize 60GB -autosize-increment 2.50GB "
                "-min-autosize 50GB -autosize-mode grow -space-guarantee volume"
                %(vserver, vol_name, target_aggr, vol_size))
-        self._ssh_cmd(cmd)
+        self.ssh_cmd(cmd)
     
     
     def create_set_QOS_policy(self, qosPolicy, vserver, vol_name):
@@ -59,13 +59,13 @@ class NetappFiler:
         cmds.append("vol modify -vserver %s -volume %s -qos-policy-group %s"
                     %(vserver, vol_name, qosPolicy))
         for cmd in cmds:
-            self._ssh_cmd(cmd)
+            self.ssh_cmd(cmd)
     
     
     def set_dedup (self, vserver, vol_name):
         #turn dedup on for a volume
         cmd = "sis on -vserver %s -volume %s" %(vserver, vol_name)
-        self._ssh_cmd(cmd)
+        self.ssh_cmd(cmd)
     
     
     def set_compression (self, vserver, vol_name):
@@ -74,21 +74,21 @@ class NetappFiler:
         cmds.append("sis modify -vserver %s -volume %s -compression true"
                     %(vserver, vol_name))
         for cmd in cmds:
-            self._ssh_cmd(cmd)
+            self.ssh_cmd(cmd)
     
     
     def set_thick (self, vserver, vol_name):
         # make volume thick provisioned
         cmd = ("vol modify  -vserver %s -volume %s  -space-guarantee volume"
                %(vserver, vol_name))
-        self._ssh_cmd(cmd)
+        self.ssh_cmd(cmd)
     
     
     def set_thin (self, vserver, vol_name):
         # make volume thin provisioned
         cmd = ("vol modify  -vserver %s -volume %s -space-guarantee none"
                %(vserver, vol_name))
-        self._ssh_cmd(cmd)
+        self.ssh_cmd(cmd)
     
     
     def mirror_vol (self,
@@ -111,7 +111,7 @@ class NetappFiler:
                     "-destination-path  %s:%s"
                     %(vserver, vol_name, mirror_vserver, mirror_vol))
         for cmd in cmds:
-            self._ssh_cmd(cmd)
+            self.ssh_cmd(cmd)
     
     
     def _is_vol_mirrored(self, vserver, vol_name):
@@ -136,7 +136,7 @@ class NetappFiler:
     
     def filer_test(self):
         cmd = 'vol show'
-        self._ssh_cmd(cmd)
+        self.ssh_cmd(cmd)
         
     
     def create_volume(self,
@@ -216,7 +216,7 @@ class NetappFiler:
         delcmd = ("volume delete -vserver %s -volume %s -foreground true"
                   %(vserver, vol_name))
         for cmd in cmds:
-            self._ssh_cmd(cmd)
+            self.ssh_cmd(cmd)
         self._ssh_yes_cmd(delcmd)
     
     
@@ -229,7 +229,7 @@ class NetappFiler:
             mirror = self._is_vol_mirrored(vserver, vol_name)
             cmd = ("snapmirror delete -S %s:%s -destination-path %s "
                    "-foreground true" %(vserver, vol_name, mirror))
-            self._ssh_cmd(cmd)
+            self.ssh_cmd(cmd)
             mirror = mirror.split(':')
             self._delete_volume(mirror[0], mirror[1])
         self.unmount_volume(vol_name)
@@ -241,7 +241,7 @@ class NetappFiler:
         
         aggrs = []
         cmd = 'vserver show -vserver %s -aggr-list *' %vserver
-        rtn = self._ssh_cmd(cmd)
+        rtn = self.ssh_cmd(cmd)
         for line in rtn:
             if 'List of Aggregates Assigned:' in line:
                 aggrs = line.split(':')[-1]
@@ -257,7 +257,7 @@ class NetappFiler:
         ips = []
         cmd = ('network interface show -vserver %s -lif * -status-oper up '
                '-status-admin up -role data' %vserver)
-        rtn = self._ssh_cmd(cmd)
+        rtn = self.ssh_cmd(cmd)
         for line in rtn:
             words = line.split()
             for word in words:
@@ -283,7 +283,7 @@ class NetappFiler:
         
         volumes = []
         cmd = ('volume show -vserver %s' %vserver)
-        rtn = self._ssh_cmd(cmd)
+        rtn = self.ssh_cmd(cmd)
         for line in rtn[2:]:
             words = line.split()
             if len(words) >= 2:
@@ -300,7 +300,7 @@ class NetappFiler:
         
         volume = {}
         cmd = ('volume show -vserver %s -volume %s' %(vserver, vol_name))
-        rtn = self._ssh_cmd(cmd)
+        rtn = self.ssh_cmd(cmd)
         for line in rtn:
             line = line.strip()
             if line == 'There are no entries matching your query.':
@@ -317,10 +317,10 @@ class NetappFiler:
         if mount is None:
             mount = '/%s' %vol_name
         cmd = ('volume mount -volume %s -junction-path %s' %(vol_name, mount))
-        self._ssh_cmd(cmd)
+        self.ssh_cmd(cmd)
     
     
     def unmount_volume(self, vol_name):
         ''' Unmounts a volume '''
         cmd = ('volume unmount -volume %s' %vol_name)
-        self._ssh_cmd(cmd)
+        self.ssh_cmd(cmd)
