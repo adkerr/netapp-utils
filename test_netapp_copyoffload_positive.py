@@ -32,6 +32,7 @@ class TestCopyOffload(unittest.TestCase):
 
 
     def setUp(self):
+        print('Hello World')
         # Verify that environment has been primed
         self.assertIsNotNone(os.getenv("OS_USERNAME"),
                              "Environment not set up, please source "
@@ -114,14 +115,7 @@ class TestCopyOffload(unittest.TestCase):
                                "%s:/glance" %self.vserver_ip,
                                self.image_store])
         # The metatdata file is configured
-        metadatafile = open('/etc/glance/netapp.json', 'w')
-        json = str('{'
-                   '"share_location": "nfs://%s/glance",'
-                   '"mount_point": "%s",'
-                   '"type": "nfs"'
-                   '}' %(self.vserver_ip, self.image_store))
-        metadatafile.write(json)
-        metadatafile.close()
+        self._reset_json()
         self.glance.set('DEFAULT',
                         'filesystem_store_metadata_file',
                         '/etc/glance/netapp.json')
@@ -138,11 +132,7 @@ class TestCopyOffload(unittest.TestCase):
             self.glance.write(configfile)
         configfile.close()
         
-        # Restart glance and cinder
-        devstack.restart_cinder()
-        devstack.restart_glance()
-        # Give services time to initialize
-        time.sleep(20)
+        self._restart_services()
         
     
     def tearDown(self):
@@ -152,6 +142,32 @@ class TestCopyOffload(unittest.TestCase):
     def _delete_image(self, image_id):
         # Delete image from glance
         subprocess.call(["glance", "image-delete", image_id])
+    
+    
+    def _reset_json(self):
+        metadatafile = open('/etc/glance/netapp.json', 'w')
+        json = str('{'
+                   '"share_location": "nfs://%s/glance",'
+                   '"mount_point": "%s",'
+                   '"type": "nfs"'
+                   '}' %(self.vserver_ip, self.image_store))
+        metadatafile.write(json)
+        metadatafile.close()
+    
+    
+    def _reset_shares(self, share):
+        shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
+        shares = open(shares_file, 'w')
+        shares.writelines(share)
+        shares.close()
+    
+    
+    def _restart_services(self):
+        # Restart glance and cinder
+        devstack.restart_cinder()
+        devstack.restart_glance()
+        # Give services time to initialize
+        time.sleep(20)
 
 
     def _do_image_download_test(self):
@@ -300,7 +316,10 @@ class TestCopyOffload(unittest.TestCase):
         return copy_reqs, copy_failures
 
 
-    def test_image_download_different_volumes_positive(self):
+    def test_image_download_different_flexvols_positive(self):
+        ''' This test attempts to use copy offload when downloading an image
+            from glance that resides in a different flexvol than where the
+            cinder volumes are stored '''
         print('%s...' %inspect.stack()[0][3])
         copy_reqs, copy_failures = self._do_image_download_test()
         self.assertEqual(copy_reqs,
@@ -310,7 +329,64 @@ class TestCopyOffload(unittest.TestCase):
                          0,
                          '%s copy_failures detected, expected 0' %copy_failures)
         print('%s... OK' %inspect.stack()[0][3])
+    
+    
+    def test_image_download_same_flexvol_positive(self):
+        ''' This tests the use of copy offload when downloading an image
+            from glance that resides in the same flexvol as where the
+            cinder volumes are stored.  Cloning should be used instead of
+            copy offload '''
+        print('%s...' %inspect.stack()[0][3])
+        self.addCleanup(self._restart_services)
+        subprocess.check_call(["sudo", "umount", self.image_store])
+        self.addCleanup(subprocess.call, ["sudo",
+                                          "mount",
+                                          "-t",
+                                          "nfs",
+                                          "-o",
+                                          "vers=4",
+                                          "%s:/glance" %self.vserver_ip,
+                                          self.image_store])
+        shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
+        # Force cinder to use only 1 possible flexvol
+        shares = open(shares_file, 'rw')
+        self.addCleanup(shares.close)
+        share = shares.readlines()
+        shares.write(share[0])
+        shares.close()
+        self.addCleanup(self._reset_shares(share))
         
+        ip = share[0].split('/')[0]
+        vol = share[0].split(':')[-1]
+        
+        metadatafile = open('/etc/glance/netapp.json', 'w')
+        self.addCleanup(metadatafile.close)
+        metadatafile.write(str('{'
+                               '"share_location": "nfs://%s%s",'
+                               '"mount_point": "%s",'
+                               '"type": "nfs"'
+                               '}' %(ip[:-1], vol, self.image_store)))
+        metadatafile.close()
+        self.addCleanup(self._reset_json)
+        
+        subprocess.check_call(["sudo",
+                               "mount",
+                               "-t",
+                               "nfs",
+                               "-o",
+                               "vers=4",
+                               "%s" %share[0],
+                               self.image_store])
+        self.addCleanup(subprocess.call, ["sudo", "umount", self.image_store])
+        self._restart_services()
+        copy_reqs, copy_failures = self._do_image_download_test()
+        self.assertEqual(copy_reqs,
+                         0,
+                         '%s copy_reqs detected, expected 0' %copy_reqs)
+        self.assertEqual(copy_failures,
+                         0,
+                         '%s copy_failures detected, expected 0' %copy_failures)
+        print('%s... OK' %inspect.stack()[0][3])
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testRapidClone']
