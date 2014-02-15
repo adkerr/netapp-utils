@@ -18,6 +18,7 @@ version and then restarting both Cinder and Glance
 '''
 import ConfigParser
 import devstack_utils as devstack
+import inspect
 import ontapSSH
 import os
 import paramiko
@@ -185,8 +186,6 @@ class TestCopyOffload(unittest.TestCase):
                                                        "show",
                                                        volume_origin]
                                                       ).decode("utf-8"):
-                print ("Volume %s successfully created in %ss"
-                       %(volume_origin, time.time() - start))
                 done = True
                 break
             time.sleep(2)
@@ -221,8 +220,6 @@ class TestCopyOffload(unittest.TestCase):
             if "active" in subprocess.check_output(["glance",
                                                     "image-show",
                                                     image]).decode("utf-8"):
-                print ("Image %s successfully uploaded in %ss"
-                       %(image, time.time() - start))
                 done = True
                 break
         if not done:
@@ -267,7 +264,6 @@ class TestCopyOffload(unittest.TestCase):
                 volume = line[2]
                 break
         self.addCleanup(subprocess.call, ["cinder", "delete", volume])
-        print ("Volume %s being created from image %s" %(volume, image))
         # Wait for volume creation
         done = False
         start = time.time()
@@ -276,8 +272,6 @@ class TestCopyOffload(unittest.TestCase):
             if "available" in subprocess.check_output(["cinder",
                                                        "show",
                                                        volume]).decode("utf-8"):
-                print ("Volume %s successfully created in %ss"
-                       %(volume, time.time() - start))
                 done = True
                 break
         if not done:
@@ -303,12 +297,11 @@ class TestCopyOffload(unittest.TestCase):
         # Check difference in copy_reqs
         copy_reqs = copy_reqs_final - copy_reqs_origin
         copy_failures = copy_failures_final - copy_failures_origin
-        print('copy_reqs increased by %s' %copy_reqs)
-        print('copy_failures increased by %s' %copy_failures)
         return copy_reqs, copy_failures
 
 
     def test_image_download_different_volumes_positive(self):
+        print('%s...' %inspect.stack()[0][3])
         copy_reqs, copy_failures = self._do_image_download_test()
         self.assertEqual(copy_reqs,
                          1,
@@ -316,6 +309,7 @@ class TestCopyOffload(unittest.TestCase):
         self.assertEqual(copy_failures,
                          0,
                          '%s copy_failures detected, expected 0' %copy_failures)
+        print('%s... OK' %inspect.stack()[0][3])
         
 
 if __name__ == "__main__":
