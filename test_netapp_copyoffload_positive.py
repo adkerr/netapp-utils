@@ -350,30 +350,22 @@ class TestCopyOffload(unittest.TestCase):
             cinder volumes are stored.  Cloning should be used instead of
             copy offload '''
         print('%s...' %inspect.stack()[0][3])
-        print('1')
         self._unmount_glance()
         # Force cinder to use only 1 possible flexvol
-        print('2')
         share = open(self.shares_file, 'r+')
-        print('3')
         share.write(self.shares[0])
-        print('4')
         share.close()
-        print('5')
-        ip = share[0].split('/')[0]
-        print('6')
-        vol = share[0].split(':')[-1]
-        print('7')
+        
+        ip = self.shares[0].split('/')[0]
+        vol = self.shares[0].split(':')[-1]
+        
         metadatafile = open('/etc/glance/netapp.json', 'w')
-        print('8')
         metadatafile.write(str('{'
                                '"share_location": "nfs://%s%s",'
                                '"mount_point": "%s",'
                                '"type": "nfs"'
                                '}' %(ip[:-1], vol, self.image_store)))
-        print('9')
         metadatafile.close()
-        print('10')
         subprocess.check_call(["sudo",
                                "mount",
                                "-t",
@@ -382,19 +374,14 @@ class TestCopyOffload(unittest.TestCase):
                                "vers=4",
                                "%s" %share[0].strip(),
                                self.image_store])
-        print('11')
         self._restart_services()
-        print('12')
         copy_reqs, copy_failures = self._do_image_download_test()
-        print('13')
         self.assertEqual(copy_reqs,
                          0,
                          '%s copy_reqs detected, expected 0' %copy_reqs)
-        print('14')
         self.assertEqual(copy_failures,
                          0,
                          '%s copy_failures detected, expected 0' %copy_failures)
-        print('15')
         print('%s... OK' %inspect.stack()[0][3])
 
 if __name__ == "__main__":
