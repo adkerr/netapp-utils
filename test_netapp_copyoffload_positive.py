@@ -103,15 +103,8 @@ class TestCopyOffload(unittest.TestCase):
             self.image_store = self.image_store[:-1]
         mount = subprocess.check_output("mount").decode("utf-8")
         if self.image_store in mount:
-            subprocess.check_call(["sudo", "umount", self.image_store])
-        subprocess.check_call(["sudo",
-                               "mount",
-                               "-t",
-                               "nfs",
-                               "-o",
-                               "vers=4",
-                               "%s:/glance" %self.vserver_ip,
-                               self.image_store])
+            self._unmount_glance()
+        self._mount_glance()
         # The metatdata file is configured
         self._reset_json()
         self.glance.set('DEFAULT',
@@ -165,6 +158,21 @@ class TestCopyOffload(unittest.TestCase):
         devstack.restart_glance()
         # Give services time to initialize
         time.sleep(20)
+    
+    
+    def _mount_glance(self):
+        subprocess.check_call(["sudo",
+                               "mount",
+                               "-t",
+                               "nfs",
+                               "-o",
+                               "vers=4",
+                               "%s:/glance" %self.vserver_ip,
+                               self.image_store])
+    
+    
+    def _unmount_glance(self):
+        subprocess.check_call(["sudo", "umount", self.image_store])
 
 
     def _do_image_download_test(self):
@@ -335,15 +343,8 @@ class TestCopyOffload(unittest.TestCase):
             copy offload '''
         print('%s...' %inspect.stack()[0][3])
         self.addCleanup(self._restart_services)
-        subprocess.check_call(["sudo", "umount", self.image_store])
-        self.addCleanup(subprocess.call, ["sudo",
-                                          "mount",
-                                          "-t",
-                                          "nfs",
-                                          "-o",
-                                          "vers=4",
-                                          "%s:/glance" %self.vserver_ip,
-                                          self.image_store])
+        self._unmount_glance()
+        self.addCleanup(self._mount_glance())
         shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
         # Force cinder to use only 1 possible flexvol
         shares = open(shares_file, 'r+')
@@ -372,7 +373,7 @@ class TestCopyOffload(unittest.TestCase):
                                "vers=4",
                                "%s" %share[0].strip(),
                                self.image_store])
-        self.addCleanup(subprocess.call, ["sudo", "umount", self.image_store])
+        self.addCleanup(self._unmount_glance())
         self._restart_services()
         copy_reqs, copy_failures = self._do_image_download_test()
         self.assertEqual(copy_reqs,
