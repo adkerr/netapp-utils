@@ -372,7 +372,7 @@ class TestCopyOffload(unittest.TestCase):
                                "nfs",
                                "-o",
                                "vers=4",
-                               "%s" %share[0].strip(),
+                               "%s" %self.shares[0].strip(),
                                self.image_store])
         self._restart_services()
         copy_reqs, copy_failures = self._do_image_download_test()
