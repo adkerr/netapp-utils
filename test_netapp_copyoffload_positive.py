@@ -136,7 +136,6 @@ class TestCopyOffload(unittest.TestCase):
         self._reset_json()
         self._reset_shares()
         self._restart_services
-        del self.filer
 
 
     def _delete_image(self, image_id):
