@@ -142,9 +142,9 @@ class NetappFiler:
     def create_volume(self,
                       vserver,
                       vol_name,
+                      source_aggr,
                       vol_size='10GB',
-                      source_aggr='aggr2',
-                      mirror_aggr='aggr3',
+                      mirror_aggr=None,
                       dedup=False,
                       compression=False,
                       thin=False,
@@ -160,10 +160,10 @@ class NetappFiler:
         @type vol_name: str
         @param vol_size: *Default 10GB* size of the volume
         @type vol_size: str
-        @param source_aggr: *Default 'aggr2'* this should be the main 
+        @param source_aggr: This should be the main 
                                 aggregate for creations on the primary vserver
         @type source_aggr: str
-        @param mirror_aggr: *Default 'aggr3'* this is only used to create
+        @param mirror_aggr: *Default None* this is only used to create
                                 an alternate volume in another vserver for
                                 mirroring
         @type mirror_aggr: str
