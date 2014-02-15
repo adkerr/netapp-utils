@@ -259,21 +259,21 @@ class NetappFiler:
         rtn = self._ssh_cmd(cmd)
         for line in rtn:
             words = line.split()
-            if len(words) >= 2:
-                for word in words:
-                    ip = word.split('/')[0]
-                    try:
-                        # Quickly determine valid IPv4 addresses
-                        socket.inet_aton(ip)
-                        ips.append(ip)
-                    except socket.error:
-                        pass
-                    try:
-                        # Quickly determine valid IPv6 addresses
-                        socket.inet_pton(socket.AF_INET6, ip)
-                        ips.append(ip)
-                    except socket.error:
-                        pass
+            for word in words:
+                ip = word.split('/')[0]
+                try:
+                    # Quickly determine valid IPv4 addresses
+                    socket.inet_aton(ip)
+                    ips.append(ip)
+                    continue
+                except socket.error:
+                    pass
+                try:
+                    # Quickly determine valid IPv6 addresses
+                    socket.inet_pton(socket.AF_INET6, ip)
+                    ips.append(ip)
+                except socket.error:
+                    pass
         return ips
     
     
@@ -308,3 +308,18 @@ class NetappFiler:
                 words = line.split(':')
                 volume[words[0].strip()] = words[1].strip()
         return volume
+    
+    
+    def mount_volume(self, vol_name, mount=None):
+        ''' Mounts a volume, junction path defaults to /vol_name '''
+        
+        if mount is None:
+            mount = '/%s' %vol_name
+        cmd = ('volume mount -volume %s -junction-path %s' %(vol_name, mount))
+        self._ssh_cmd(cmd)
+    
+    
+    def unmount_volume(self, vol_name):
+        ''' Unmounts a volume '''
+        cmd = ('volume unmount -volume %s' %vol_name)
+        self._ssh_cmd(cmd)
