@@ -21,7 +21,6 @@ import devstack_utils as devstack
 import inspect
 import ontapSSH
 import os
-import paramiko
 import random
 import subprocess
 import time
@@ -66,9 +65,9 @@ class TestCopyOffload(unittest.TestCase):
         configfile.close()
         
         self.shares_file = self.cinder.get(self.backend, 'nfs_shares_config')
-        shares = open(self.shares_file, 'r')
-        self.shares = shares.readlines()
-        shares.close()
+        share = open(self.shares_file, 'r')
+        self.shares = share.readline().strip()
+        share.close()
 
         # Query vserver for glance volume, if it doesn't already exist create 
         # on a random aggregate and find out the vserver's data IP address
@@ -131,10 +130,6 @@ class TestCopyOffload(unittest.TestCase):
         
     
     def tearDown(self):
-        self.cinder.set(self.backend, 'nfs_shares_config', self.shares_file)
-        with open('/etc/cinder/cinder.conf', 'w+') as configfile:
-            self.cinder.write(configfile)
-        configfile.close()
         del self.filer
 
 
@@ -152,12 +147,6 @@ class TestCopyOffload(unittest.TestCase):
                    '}' %(self.vserver_ip, self.image_store))
         metadatafile.write(json)
         metadatafile.close()
-    
-    
-    def _reset_shares(self):
-        share = open(self.shares_file, 'w')
-        share.writelines(self.shares)
-        share.close()
     
     
     def _restart_services(self):
@@ -351,21 +340,16 @@ class TestCopyOffload(unittest.TestCase):
             copy offload '''
         print('%s...' %inspect.stack()[0][3])
         self._unmount_glance()
-        # Force cinder to use only 1 possible flexvol
-        filename = '%s-%s' %(self.shares_file, inspect.stack()[0][3])
-        share = open(filename, 'w')
-        share.write(self.shares[0])
-        share.close()
-        
-        self.cinder.set(self.backend, 'nfs_shares_config', filename)
-        with open('/etc/cinder/cinder.conf', 'w+') as configfile:
-            self.cinder.write(configfile)
-        configfile.close()
-        
-        
-        ip = self.shares[0].split('/')[0]
-        vol = self.shares[0].split(':')[-1]
-        
+        # Force cinder to use only 1 volume for backend
+        nfs_file = open(self.shares_file, 'r+')
+        lines = nfs_file.readlines()
+        for i, line in enumerate(lines):
+            if i > 0:
+                lines[i] = '# %s' %line
+        nfs_file.writelines(lines)
+        nfs_file.close()
+        ip = self.shares.split('/')[0].strip()
+        vol = self.shares.split(':')[-1].strip()
         metadatafile = open('/etc/glance/netapp.json', 'w')
         metadatafile.write(str('{'
                                '"share_location": "nfs://%s%s",'
@@ -379,10 +363,17 @@ class TestCopyOffload(unittest.TestCase):
                                "nfs",
                                "-o",
                                "vers=4",
-                               "%s" %self.shares[0].strip(),
+                               "%s" %self.shares.strip(),
                                self.image_store])
         self._restart_services()
         copy_reqs, copy_failures = self._do_image_download_test()
+        nfs_file = open(self.shares_file, 'r+')
+        lines = nfs_file.readlines()
+        for i, line in enumerate(lines):
+            if i > 0:
+                lines[i] = line[1:]
+        nfs_file.writelines(lines)
+        nfs_file.close()
         self.assertEqual(copy_reqs,
                          0,
                          '%s copy_reqs detected, expected 0' %copy_reqs)
